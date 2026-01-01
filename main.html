@@ -65,54 +65,341 @@
         font-size: 14px;
         color: #94a3b8;
       }
+      .field {
+        display: flex;
+        gap: 12px;
+        margin: 18px 0 8px 0;
+        flex-wrap: wrap;
+        position: relative;
+      }
+      .field input {
+        flex: 1;
+        min-width: 240px;
+        padding: 12px 14px;
+        border-radius: 10px;
+        border: 1px solid rgba(226, 232, 240, 0.2);
+        background: rgba(255, 255, 255, 0.06);
+        color: #e2e8f0;
+        font-size: 16px;
+        outline: none;
+      }
+      .field input:focus {
+        border-color: #fbbf24;
+        box-shadow: 0 0 0 3px rgba(251, 191, 36, 0.25);
+      }
+      .suggestions {
+        position: absolute;
+        top: 56px;
+        left: 0;
+        right: 0;
+        z-index: 5;
+        background: rgba(15, 23, 42, 0.95);
+        border: 1px solid rgba(226, 232, 240, 0.12);
+        border-radius: 10px;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+        overflow: hidden;
+      }
+      .suggestion-item {
+        padding: 10px 14px;
+        cursor: pointer;
+        color: #e2e8f0;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.07);
+      }
+      .suggestion-item:last-child {
+        border-bottom: none;
+      }
+      .suggestion-item:hover {
+        background: rgba(226, 232, 240, 0.08);
+      }
+      .results {
+        margin-top: 16px;
+        padding: 12px;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(226, 232, 240, 0.05);
+      }
+      .result-item {
+        padding: 10px 0;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.07);
+      }
+      .result-item:last-child {
+        border-bottom: none;
+      }
+      .result-title {
+        font-weight: 700;
+        color: #f8fafc;
+        margin-bottom: 4px;
+      }
+      .result-meta {
+        color: #cbd5e1;
+        font-size: 14px;
+        line-height: 1.5;
+      }
     </style>
   </head>
   <body>
     <div class="card">
       <h1>Opération Tempête</h1>
       <p>
-        Consulte le statut actuel de la lumière de déneigement de la rue (donnée
-        officielle ArcGIS).
+        Entre ton adresse (rue, code postal ou no civique) pour voir l’état des
+        lumières de déneigement les plus proches (données officielles ArcGIS).
       </p>
-      <button id="statusButton" type="button">Voir le statut</button>
-      <p id="statusText" class="note"></p>
+      <div class="field">
+        <input
+          id="addressInput"
+          type="text"
+          placeholder="Ex.: 121 Avenue Gauvin, Québec G1M 1Y3"
+        />
+        <button id="statusButton" type="button">Voir le statut</button>
+        <div id="suggestions" class="suggestions" style="display: none"></div>
+      </div>
+      <div class="results" id="results"></div>
     </div>
 
     <script>
-      const apiUrl =
-        "https://services1.arcgis.com/4GCvRJNX6LNyFVQ0/ArcGIS/rest/services/CI_OPERATION_DENEIGEMENT/FeatureServer/0/query?where=OBJECTID%3D926&outFields=STATUT,DATE_MAJ&f=pjson";
-      const streetLabel = "121 Avenue Gauvin, Québec (Vanier)";
-
-      const statusText = document.getElementById("statusText");
+      const featureLayerUrl =
+        "https://services1.arcgis.com/4GCvRJNX6LNyFVQ0/ArcGIS/rest/services/CI_OPERATION_DENEIGEMENT/FeatureServer/0/query";
       const statusButton = document.getElementById("statusButton");
+      const addressInput = document.getElementById("addressInput");
+      const resultsDiv = document.getElementById("results");
+      const suggestionsDiv = document.getElementById("suggestions");
+      let selectedSuggestion = null;
+      let suggestionAbort = null;
 
-      async function fetchStatus() {
-        statusText.textContent = "Chargement...";
+      const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+      async function geocode(queryText, magicKey) {
+        const url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/findAddressCandidates?f=pjson&maxLocations=1&singleLine=${encodeURIComponent(
+          queryText
+        )}${magicKey ? `&magicKey=${encodeURIComponent(magicKey)}` : ""}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Geocodage indisponible");
+        const data = await res.json();
+        const candidate = data.candidates?.[0];
+        if (!candidate) throw new Error("Adresse introuvable");
+        return {
+          location: candidate.location, // {x: lon, y: lat}
+          address: candidate.address,
+        };
+      }
+
+      async function projectToSR(points, inSR, outSR) {
+        if (!points.length) return [];
+        const geometries = encodeURIComponent(
+          JSON.stringify({
+            geometryType: "esriGeometryPoint",
+            geometries: points,
+          })
+        );
+        const url = `https://utility.arcgisonline.com/ArcGIS/rest/services/Geometry/GeometryServer/project?f=pjson&geometries=${geometries}&inSR=${inSR}&outSR=${outSR}`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error("Transformation de coordonnées échouée");
+        const data = await res.json();
+        return data.geometries || [];
+      }
+
+      function renderSuggestions(list) {
+        if (!list.length) {
+          suggestionsDiv.style.display = "none";
+          suggestionsDiv.innerHTML = "";
+          return;
+        }
+        suggestionsDiv.innerHTML = list
+          .map(
+            (item) =>
+              `<div class="suggestion-item" data-magic="${item.magicKey}" data-text="${item.text}">${item.text}</div>`
+          )
+          .join("");
+        suggestionsDiv.style.display = "block";
+      }
+
+      function formatDate(ms) {
+        return ms ? new Date(ms).toLocaleString("fr-CA") : "N/D";
+      }
+
+      function formatMeters(m) {
+        if (m == null) return "distance inconnue";
+        if (m >= 1000) return `${(m / 1000).toFixed(1)} km`;
+        return `${Math.round(m)} m`;
+      }
+
+      function renderStatus(message, items = []) {
+        if (!items.length) {
+          resultsDiv.innerHTML = `<p class="note">${message}</p>`;
+          return;
+        }
+        const html = items
+          .map(
+            (item) => `
+          <div class="result-item">
+            <div class="result-title">Feu ${item.statut}</div>
+            <div class="result-meta">
+              Poste : ${item.stationNo ?? "N/D"} — Distance : ${item.distance}
+              <br />
+              Emplacement : ${item.locationLabel}
+              <br />
+              Dernière mise à jour : ${item.updated}
+            </div>
+          </div>`
+          )
+          .join("");
+        resultsDiv.innerHTML = html;
+      }
+
+      async function fetchStatuses() {
+        const query = addressInput.value.trim();
+          if (!query) {
+            renderStatus("Entre une adresse ou un code postal.");
+            return;
+          }
+          renderStatus("Recherche en cours...");
         statusButton.disabled = true;
         try {
-          const response = await fetch(apiUrl);
-          if (!response.ok) {
-            throw new Error(`Erreur réseau (${response.status})`);
+          const { location, address } = await geocode(
+            query,
+            selectedSuggestion?.magicKey
+          );
+          const [projected] = await projectToSR(
+            [{ x: location.x, y: location.y }],
+            4326,
+            32187
+          );
+          if (!projected) throw new Error("Coordonnées indisponibles");
+
+          const geoJSON = encodeURIComponent(JSON.stringify(projected));
+          const url = `${featureLayerUrl}?f=pjson&where=1%3D1&geometry=${geoJSON}&geometryType=esriGeometryPoint&inSR=32187&spatialRel=esriSpatialRelIntersects&distance=500&units=esriSRUnit_Meter&outFields=STATUT,DATE_MAJ,STATION_NO&returnGeometry=true`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error("Requête ArcGIS échouée");
+          const data = await res.json();
+          const features = data.features || [];
+          if (!features.length) {
+            renderStatus(
+              `Aucun feu trouvé près de “${address}”. Essaie une autre adresse ou vérifie l’orthographe.`
+            );
+            return;
           }
-          const data = await response.json();
-          const feature = data.features?.[0]?.attributes;
-          const statut = feature?.STATUT || "Inconnu";
-          const updated = feature?.DATE_MAJ
-            ? new Date(feature.DATE_MAJ).toLocaleString("fr-CA")
-            : null;
-          statusText.textContent = updated
-            ? `Rue : ${streetLabel} — Statut : feu ${statut.toLowerCase()} (MAJ ${updated})`
-            : `Rue : ${streetLabel} — Statut : feu ${statut.toLowerCase()}`;
+
+          // Compute distances in SR 32187
+          const withDistance = features.map((f) => {
+            const geom = f.geometry;
+            const dx = geom?.x != null ? geom.x - projected.x : null;
+            const dy = geom?.y != null ? geom.y - projected.y : null;
+            const dist = dx != null && dy != null ? Math.hypot(dx, dy) : null;
+            return { ...f, distance: dist };
+          });
+
+          // Keep nearest distinct stations, up to 15 to avoid huge lists.
+          withDistance.sort((a, b) => (a.distance || 0) - (b.distance || 0));
+          const dedup = [];
+          const seenStations = new Set();
+          for (const f of withDistance) {
+            const station = f.attributes?.STATION_NO || f.attributes?.OBJECTID;
+            if (seenStations.has(station)) continue;
+            seenStations.add(station);
+            dedup.push(f);
+            if (dedup.length >= 15) break;
+          }
+
+          // Project feature geometries to WGS84 for a human-readable location
+          const points = dedup
+            .map((f) => f.geometry)
+            .filter((g) => g?.x != null && g?.y != null);
+          const projectedPoints = await projectToSR(points, 32187, 4326);
+
+          const items = dedup.map((f, idx) => {
+            const attrs = f.attributes || {};
+            const statut = (attrs.STATUT || "Inconnu").toLowerCase();
+            const updated = formatDate(attrs.DATE_MAJ);
+            const projectedPoint = projectedPoints[idx];
+            const locationLabel = projectedPoint
+              ? `près de ${projectedPoint.y.toFixed(
+                  5
+                )}, ${projectedPoint.x.toFixed(5)}`
+              : "emplacement exact inconnu";
+            return {
+              statut,
+              updated,
+              stationNo: attrs.STATION_NO,
+              distance: formatMeters(f.distance),
+              locationLabel,
+            };
+          });
+
+          renderStatus(
+            `Adresse : ${address}. Feux dans un rayon de 500 m :`,
+            items
+          );
         } catch (error) {
-          statusText.textContent =
-            "Impossible de récupérer le statut pour le moment.";
+          renderStatus(
+            "Impossible de récupérer le statut pour le moment. Réessaie plus tard ou vérifie l’adresse."
+          );
           console.error(error);
         } finally {
           statusButton.disabled = false;
         }
       }
 
-      statusButton.addEventListener("click", fetchStatus);
+      statusButton.addEventListener("click", fetchStatuses);
+      addressInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          fetchStatuses();
+        }
+      });
+
+      async function fetchSuggestions(query) {
+        if (suggestionAbort) suggestionAbort.abort();
+        suggestionAbort = new AbortController();
+        const controller = suggestionAbort;
+        // Bias to Québec City, allow more results (up to 10) and keep a wider box.
+        const center = "-71.2074,46.8139"; // lon,lat roughly Québec City
+        const extent = "-71.7,46.6,-70.8,47.1"; // minLon,minLat,maxLon,maxLat
+        const url = `https://geocode.arcgis.com/arcgis/rest/services/World/GeocodeServer/suggest?f=pjson&maxSuggestions=10&countryCode=CAN&text=${encodeURIComponent(
+          query
+        )}&location=${center}&searchExtent=${extent}&category=Address,Postal`;
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) return [];
+        const data = await res.json();
+        return data.suggestions || [];
+      }
+
+      let suggestTimer = null;
+      addressInput.addEventListener("input", (e) => {
+        const text = e.target.value.trim();
+        selectedSuggestion = null;
+        if (suggestTimer) clearTimeout(suggestTimer);
+        if (text.length < 3) {
+          renderSuggestions([]);
+          return;
+        }
+        suggestTimer = setTimeout(async () => {
+          try {
+            const suggs = await fetchSuggestions(text);
+            renderSuggestions(suggs);
+          } catch (err) {
+            renderSuggestions([]);
+          }
+        }, 220);
+      });
+
+      suggestionsDiv.addEventListener("click", (e) => {
+        const item = e.target.closest(".suggestion-item");
+        if (!item) return;
+        const text = item.getAttribute("data-text");
+        const magicKey = item.getAttribute("data-magic");
+        selectedSuggestion = { text, magicKey };
+        addressInput.value = text;
+        renderSuggestions([]);
+        fetchStatuses();
+      });
+
+      document.addEventListener("click", (e) => {
+        if (!suggestionsDiv.contains(e.target) && e.target !== addressInput) {
+          renderSuggestions([]);
+        }
+      });
+
+      // Hint text on load
+      renderStatus("Entre une adresse pour commencer.");
     </script>
   </body>
 </html>
