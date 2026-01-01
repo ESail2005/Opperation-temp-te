@@ -4,8 +4,115 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Opération tempête</title>
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        font-family: Arial, sans-serif;
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+        color: #e2e8f0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        padding: 24px;
+      }
+      .card {
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(226, 232, 240, 0.1);
+        border-radius: 16px;
+        padding: 24px;
+        max-width: 520px;
+        width: 100%;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+      }
+      h1 {
+        margin: 0 0 12px 0;
+        font-size: 28px;
+        letter-spacing: 0.5px;
+      }
+      p {
+        margin: 0 0 18px 0;
+        line-height: 1.6;
+        color: #cbd5e1;
+      }
+      button {
+        appearance: none;
+        border: none;
+        border-radius: 10px;
+        padding: 12px 18px;
+        font-size: 16px;
+        font-weight: 600;
+        color: #0f172a;
+        background: linear-gradient(120deg, #fbbf24, #f59e0b);
+        cursor: pointer;
+        transition: transform 0.15s ease, box-shadow 0.2s ease, filter 0.2s ease;
+        width: 100%;
+      }
+      button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 10px 25px rgba(0, 0, 0, 0.25);
+        filter: brightness(1.05);
+      }
+      button:active {
+        transform: translateY(0);
+        box-shadow: 0 6px 18px rgba(0, 0, 0, 0.2);
+      }
+      .note {
+        margin-top: 12px;
+        font-size: 14px;
+        color: #94a3b8;
+      }
+    </style>
   </head>
   <body>
-    <h1>Allo</h1>
+    <div class="card">
+      <h1>Opération Tempête</h1>
+      <p>
+        Consulte le statut actuel de la lumière de déneigement de la rue (donnée
+        officielle ArcGIS).
+      </p>
+      <button id="statusButton" type="button">Voir le statut</button>
+      <p id="statusText" class="note"></p>
+    </div>
+
+    <script>
+      const apiUrl =
+        "https://services1.arcgis.com/4GCvRJNX6LNyFVQ0/ArcGIS/rest/services/CI_OPERATION_DENEIGEMENT/FeatureServer/0/query?where=OBJECTID%3D926&outFields=STATUT,DATE_MAJ&f=pjson";
+      const streetLabel = "121 Avenue Gauvin, Québec (Vanier)";
+
+      const statusText = document.getElementById("statusText");
+      const statusButton = document.getElementById("statusButton");
+
+      async function fetchStatus() {
+        statusText.textContent = "Chargement...";
+        statusButton.disabled = true;
+        try {
+          const response = await fetch(apiUrl);
+          if (!response.ok) {
+            throw new Error(`Erreur réseau (${response.status})`);
+          }
+          const data = await response.json();
+          const feature = data.features?.[0]?.attributes;
+          const statut = feature?.STATUT || "Inconnu";
+          const updated = feature?.DATE_MAJ
+            ? new Date(feature.DATE_MAJ).toLocaleString("fr-CA")
+            : null;
+          statusText.textContent = updated
+            ? `Rue : ${streetLabel} — Statut : feu ${statut.toLowerCase()} (MAJ ${updated})`
+            : `Rue : ${streetLabel} — Statut : feu ${statut.toLowerCase()}`;
+        } catch (error) {
+          statusText.textContent =
+            "Impossible de récupérer le statut pour le moment.";
+          console.error(error);
+        } finally {
+          statusButton.disabled = false;
+        }
+      }
+
+      statusButton.addEventListener("click", fetchStatus);
+    </script>
   </body>
 </html>
