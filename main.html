@@ -14,19 +14,115 @@
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
         color: #e2e8f0;
         display: flex;
-        align-items: center;
+        align-items: flex-start;
         justify-content: center;
         min-height: 100vh;
         padding: 24px;
+      }
+      .layout {
+        display: flex;
+        gap: 18px;
+        width: 100%;
+        max-width: 1080px;
+        align-items: flex-start;
       }
       .card {
         background: rgba(15, 23, 42, 0.85);
         border: 1px solid rgba(226, 232, 240, 0.1);
         border-radius: 16px;
         padding: 24px;
-        max-width: 520px;
         width: 100%;
         box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+      }
+      .cart {
+        width: 320px;
+        min-height: 160px;
+        background: rgba(15, 23, 42, 0.9);
+        border: 1px solid rgba(226, 232, 240, 0.1);
+        border-radius: 16px;
+        padding: 16px;
+        box-shadow: 0 18px 45px rgba(0, 0, 0, 0.35);
+        position: sticky;
+        top: 16px;
+      }
+      .cart h2 {
+        margin: 0 0 10px 0;
+        font-size: 18px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+      .cart-count {
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+      .cart-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .cart-item {
+        padding: 10px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.03);
+        border: 1px solid rgba(226, 232, 240, 0.08);
+        display: flex;
+        justify-content: space-between;
+        gap: 10px;
+        align-items: center;
+      }
+      .cart-item-title {
+        font-weight: 700;
+        color: #f8fafc;
+        font-size: 14px;
+      }
+      .cart-item-meta {
+        font-size: 12px;
+        color: #cbd5e1;
+      }
+      .cart-remove {
+        width: 60px;
+        background: transparent;
+        color: #f43f5e;
+        border: 1px solid transparent;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .cart-empty {
+        color: #94a3b8;
+        font-size: 13px;
+      }
+      .cart-subscribe {
+        margin-top: 14px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(226, 232, 240, 0.08);
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .cart-subscribe input {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: 1px solid rgba(226, 232, 240, 0.2);
+        background: rgba(255, 255, 255, 0.06);
+        color: #e2e8f0;
+        font-size: 14px;
+      }
+      .cart-subscribe button {
+        width: 100%;
+        padding: 10px 12px;
+        border-radius: 10px;
+        border: none;
+        background: linear-gradient(120deg, #fbbf24, #f59e0b);
+        color: #0f172a;
+        font-weight: 700;
+        cursor: pointer;
       }
       h1 {
         margin: 0 0 12px 0;
@@ -119,12 +215,14 @@
         border: 1px solid rgba(226, 232, 240, 0.05);
       }
       .result-item {
-        padding: 10px 0;
+        position: relative;
+        padding: 18px 18px;
+        padding-right: 100px; /* leave room for the button */
         border-bottom: 1px solid rgba(226, 232, 240, 0.07);
       }
       .result-item.no-border {
         border-bottom: none;
-        padding-bottom: 6px;
+        padding-bottom: 18px;
       }
       .result-item:last-child {
         border-bottom: none;
@@ -132,12 +230,59 @@
       .result-title {
         font-weight: 700;
         color: #f8fafc;
-        margin-bottom: 4px;
+        margin: 0 0 8px 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
       }
       .result-meta {
         color: #cbd5e1;
         font-size: 14px;
         line-height: 1.5;
+      }
+      .status-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 50%;
+        display: inline-block;
+        box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.05);
+      }
+      .status-open {
+        background: linear-gradient(135deg, #22c55e, #16a34a);
+      }
+      .status-off {
+        background: linear-gradient(135deg, #f43f5e, #e11d48);
+      }
+      .status-unknown {
+        background: linear-gradient(135deg, #94a3b8, #64748b);
+      }
+      .add-btn {
+        position: absolute;
+        right: 12px;
+        top: 10px;
+        bottom: 10px;
+        width: 80px;
+        background: transparent;
+        border: 1px solid transparent;
+        color: #fbbf24;
+        border-radius: 14px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 0;
+        font-size: 14px;
+        cursor: pointer;
+      }
+      .add-btn:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      .add-btn.add-plus {
+        font-size: 20px;
+        font-weight: 800;
+      }
+      .add-btn.added {
+        font-size: 12px;
       }
       .divider {
         border-top: 2px solid #fbbf24;
@@ -178,37 +323,59 @@
     </style>
   </head>
   <body>
-    <div class="card">
-      <h1>Opération Tempête</h1>
-      <p>
-        Entre ton adresse (rue, code postal ou no civique) pour voir l’état des
-        lumières de déneigement les plus proches (données officielles ArcGIS).
-      </p>
-      <div class="field">
-        <input
-          id="addressInput"
-          type="text"
-          placeholder="Ex.: 121 Avenue Gauvin, Québec G1M 1Y3"
-        />
-        <button id="statusButton" type="button">Voir le statut</button>
-        <div id="suggestions" class="suggestions" style="display: none"></div>
+    <div class="layout">
+      <div class="card">
+        <h1>Opération Tempête</h1>
+        <p>
+          Entre ton adresse (rue, code postal ou no civique) pour voir l’état des
+          lumières de déneigement les plus proches (données officielles ArcGIS).
+        </p>
+        <div class="field">
+          <input
+            id="addressInput"
+            type="text"
+            placeholder="Ex.: 121 Avenue Gauvin, Québec G1M 1Y3"
+          />
+          <button id="statusButton" type="button">Voir le statut</button>
+          <div id="suggestions" class="suggestions" style="display: none"></div>
+        </div>
+        <label class="options">
+          <input type="checkbox" id="nearbyToggle" />
+          Inclure les feux des rues avoisinantes
+          <input
+            type="number"
+            id="radiusInput"
+            min="50"
+            max="1000"
+            step="50"
+            value="200"
+            aria-label="Rayon de recherche en mètres"
+          />
+          <span>m</span>
+        </label>
+        <div class="results" id="results"></div>
+        <div id="debugPanel" class="debug" style="display: none"></div>
       </div>
-      <label class="options">
-        <input type="checkbox" id="nearbyToggle" />
-        Inclure les feux des rues avoisinantes
-        <input
-          type="number"
-          id="radiusInput"
-          min="50"
-          max="1000"
-          step="50"
-          value="200"
-          aria-label="Rayon de recherche en mètres"
-        />
-        <span>m</span>
-      </label>
-      <div class="results" id="results"></div>
-      <div id="debugPanel" class="debug" style="display: none"></div>
+
+      <div class="cart">
+        <h2>
+          Sélection
+          <span class="cart-count" id="cartCount">(0)</span>
+        </h2>
+        <div class="cart-list" id="cartList">
+          <div class="cart-empty">Faites une sélection pour poursuivre</div>
+        </div>
+        <div class="cart-subscribe" id="subscribeSection">
+          <input
+            type="tel"
+            id="phoneInput"
+            placeholder="Numéro de téléphone"
+            aria-label="Numéro de téléphone"
+          />
+          <button id="subscribeButton" type="button">S'abonner</button>
+          <div id="subscribeMessage" class="cart-empty" style="display: none"></div>
+        </div>
+      </div>
     </div>
 
     <script>
@@ -225,16 +392,7 @@
       let selectedSuggestion = null;
       let suggestionAbort = null;
       let postsCache = null;
-      // Manual overrides: station number -> normalized street name
-      const stationStreetMap = {
-        "2189": canonicalStreet("avenue gauvin"),
-        "2188": canonicalStreet("avenue gauvin"),
-        "2185": canonicalStreet("avenue gauvin"),
-        "2187": canonicalStreet("avenue gauvin"),
-      };
-      const allowedStationsByStreet = {
-        "avenue gauvin": ["2189", "2188", "2185", "2187"],
-      };
+      const cart = new Map();
 
       function haversine(lat1, lon1, lat2, lon2) {
         const toRad = (d) => (d * Math.PI) / 180;
@@ -245,6 +403,104 @@
           Math.sin(dLat / 2) ** 2 +
           Math.cos(toRad(lat1)) * Math.cos(toRad(lat2)) * Math.sin(dLon / 2) ** 2;
         return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+      }
+
+      function statusClass(status) {
+        const s = (status || "").toLowerCase();
+        // Map known statuses: éteint → green, en fonction/ouvert/allumé → red, hors service → gray
+        if (s.includes("hors")) return "status-unknown";
+        if (s.includes("éteint") || s.includes("eteint")) return "status-open";
+        if (s.includes("fonction") || s.includes("ouvert") || s.includes("allum"))
+          return "status-off";
+        return "status-unknown";
+      }
+
+      async function loadPosts() {
+        if (postsCache) return postsCache;
+        const res = await fetch("posts.csv");
+        if (!res.ok) throw new Error("Impossible de charger le fichier des postes");
+        const text = await res.text();
+        function parseCSV(csvText) {
+          const rows = [];
+          let row = [];
+          let field = "";
+          let inQuotes = false;
+          for (let i = 0; i < csvText.length; i++) {
+            const c = csvText[i];
+            if (c === '"' && csvText[i + 1] === '"') {
+              field += '"';
+              i++;
+            } else if (c === '"') {
+              inQuotes = !inQuotes;
+            } else if (c === "," && !inQuotes) {
+              row.push(field);
+              field = "";
+            } else if ((c === "\n" || c === "\r") && !inQuotes) {
+              if (c === "\r" && csvText[i + 1] === "\n") i++;
+              row.push(field);
+              rows.push(row);
+              row = [];
+              field = "";
+            } else {
+              field += c;
+            }
+          }
+          if (field.length > 0 || row.length) {
+            row.push(field);
+            rows.push(row);
+          }
+          return rows.filter((r) => r.length);
+        }
+
+        const rawRows = parseCSV(text.trim());
+        const header = rawRows[0];
+        const dataRows = rawRows.slice(1).map((cols) => {
+          if (cols.length < header.length) {
+            return cols.concat(Array(header.length - cols.length).fill(""));
+          }
+          if (cols.length > header.length) {
+            const fixed = cols.slice(0, header.length - 1);
+            fixed.push(cols.slice(header.length - 1).join(","));
+            return fixed;
+          }
+          return cols;
+        });
+        const idx = (name) => header.indexOf(name);
+        const stationIdx = idx("STATION_NO");
+        const statusIdx = idx("STATUT");
+        const dateIdx = idx("DATE_MAJ_ISO");
+        const streetIdx = idx("RUE_REVERSE");
+        const lonIdx = idx("LON_WGS84");
+        const latIdx = idx("LAT_WGS84");
+        const xIdx = idx("X_32187");
+        const yIdx = idx("Y_32187");
+
+        const parseNum = (val) => {
+          if (val == null) return null;
+          const cleaned = String(val).replace(/"/g, "").trim();
+          const parsed = parseFloat(cleaned);
+          return Number.isFinite(parsed) ? parsed : null;
+        };
+
+        postsCache = dataRows.map((cols) => {
+          const street = cols[streetIdx];
+          const lonVal = parseNum(cols[lonIdx]);
+          const latVal = parseNum(cols[latIdx]);
+          const xVal = parseNum(cols[xIdx]);
+          const yVal = parseNum(cols[yIdx]);
+          return {
+            station: cols[stationIdx],
+            statut: cols[statusIdx],
+            dateMaj: cols[dateIdx],
+            street,
+            normStreet: canonicalStreet(street),
+            lon: lonVal,
+            lat: latVal,
+            x: xVal,
+            y: yVal,
+          };
+        });
+        return postsCache;
       }
 
       const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
@@ -318,8 +574,9 @@
           .normalize("NFD")
           .replace(/[\u0300-\u036f]/g, "");
         const first = base.split(",")[0];
+        // Remove leading address numbers/ranges (ex: "103-151 av gauvin") but keep numbered street names (ex: "5e avenue")
         const cleaned = first
-          .replace(/^[0-9-\s]+/, "")
+          .replace(/^[0-9]+(\s*-\s*[0-9]+)?\s+/, "")
           .replace(/\s+/g, " ")
           .trim();
         return cleaned || null;
@@ -351,72 +608,6 @@
           num,
           station: Number.isNaN(stationNum) ? Number.MAX_SAFE_INTEGER : stationNum,
         };
-      }
-
-      async function loadPosts() {
-        if (postsCache) return postsCache;
-        const res = await fetch("posts.csv");
-        if (!res.ok) throw new Error("Impossible de charger le fichier des postes");
-        const text = await res.text();
-        // CSV parser supporting quoted fields with commas.
-        function parseCSV(csvText) {
-          const rows = [];
-          let row = [];
-          let field = "";
-          let inQuotes = false;
-          for (let i = 0; i < csvText.length; i++) {
-            const c = csvText[i];
-            if (c === '"' && csvText[i + 1] === '"') {
-              field += '"';
-              i++; // escaped quote
-            } else if (c === '"') {
-              inQuotes = !inQuotes;
-            } else if (c === "," && !inQuotes) {
-              row.push(field);
-              field = "";
-            } else if ((c === "\n" || c === "\r") && !inQuotes) {
-              if (c === "\r" && csvText[i + 1] === "\n") i++;
-              row.push(field);
-              rows.push(row);
-              row = [];
-              field = "";
-            } else {
-              field += c;
-            }
-          }
-          if (field.length > 0 || row.length) {
-            row.push(field);
-            rows.push(row);
-          }
-          return rows.filter((r) => r.length);
-        }
-
-        const rows = parseCSV(text.trim());
-        const header = rows[0];
-        const dataRows = rows.slice(1);
-        const idx = (name) => header.indexOf(name);
-        const stationIdx = idx("STATION_NO");
-        const statusIdx = idx("STATUT");
-        const dateIdx = idx("DATE_MAJ_ISO");
-        const streetIdx = idx("RUE_REVERSE");
-        const lonIdx = idx("LON_WGS84");
-        const latIdx = idx("LAT_WGS84");
-
-        postsCache = dataRows.map((cols) => {
-          const street = cols[streetIdx];
-          const lonVal = parseFloat(cols[lonIdx]);
-          const latVal = parseFloat(cols[latIdx]);
-          return {
-            station: cols[stationIdx],
-            statut: cols[statusIdx],
-            dateMaj: cols[dateIdx],
-            street,
-            normStreet: canonicalStreet(street),
-            lon: Number.isFinite(lonVal) ? lonVal : null,
-            lat: Number.isFinite(latVal) ? latVal : null,
-          };
-        });
-        return postsCache;
       }
 
       const addressCache = new Map();
@@ -472,6 +663,7 @@
           resultsDiv.innerHTML = `<p class="note">${message}</p>`;
           return;
         }
+        const isInCart = (station) => cart.has(String(station));
         let html = "";
         for (let i = 0; i < items.length; i++) {
           const item = items[i];
@@ -480,9 +672,18 @@
             next && next.group !== item.group
               ? "result-item no-border"
               : "result-item";
+          const addDisabled = isInCart(item.stationNo);
+          const addLabel = addDisabled ? "Ajouté" : "+";
+          const addClass = addDisabled ? "add-btn added" : "add-btn add-plus";
           html += `
             <div class="${classNames}">
-              <div class="result-title">Feu ${item.statut}</div>
+              <div class="result-title">
+                <span class="status-dot ${item.dotClass}"></span>
+                Feu ${item.statut}
+                <button class="${addClass}" data-station="${item.stationNo}" ${addDisabled ? "disabled" : ""}>
+                  ${addLabel}
+                </button>
+              </div>
               <div class="result-meta">
                 Poste : ${item.stationNo ?? "N/D"} — Distance : ${item.distance}
                 <br />
@@ -499,6 +700,8 @@
         resultsDiv.innerHTML = html;
       }
 
+      let currentItems = [];
+
       async function fetchStatuses() {
         const query = addressInput.value.trim();
         if (!query) {
@@ -512,10 +715,7 @@
           const includeNearby = nearbyToggle.checked;
           const radiusMeters = Math.max(
             50,
-            Math.min(
-              1000,
-              Number.parseInt(radiusInput.value, 10) || 200
-            )
+            Math.min(1000, Number.parseInt(radiusInput.value, 10) || 200)
           );
           const posts = await loadPosts();
 
@@ -532,9 +732,9 @@
           let filtered = posts.filter((p) => p.normStreet === normalizedInput);
 
           if (includeNearby && location) {
-            const buffer = radiusMeters; // meters
+            const buffer = radiusMeters;
             const nearby = posts.filter((p) => {
-              if (!p.lon || !p.lat) return false;
+              if (p.lat == null || p.lon == null) return false;
               const d = haversine(location.y, location.x, p.lat, p.lon);
               return d <= buffer;
             });
@@ -550,42 +750,72 @@
             return;
           }
 
-          // Separate primary street vs nearby
-          const primary = filtered.filter((p) => p.normStreet === normalizedInput);
-          const others = filtered.filter((p) => p.normStreet !== normalizedInput);
+          const stations = filtered.map((p) => p.station).filter(Boolean);
+          let statusMap = {};
+          if (stations.length) {
+            const list = stations.map((s) => `'${s}'`).join(",");
+            const url = `${featureLayerUrl}?f=pjson&where=STATION_NO%20IN%20(${list})&outFields=STATION_NO,STATUT,DATE_MAJ&returnGeometry=false`;
+            const res = await fetch(url);
+            if (res.ok) {
+              const data = await res.json();
+              (data.features || []).forEach((f) => {
+                const a = f.attributes || {};
+                statusMap[a.STATION_NO] = {
+                  statut: a.STATUT,
+                  dateMaj: a.DATE_MAJ ? formatDate(a.DATE_MAJ) : "N/D",
+                };
+              });
+            }
+          }
 
-          const sortByAddress = (list) =>
-            list.sort((a, b) => {
-              const ka = addressOrderKey(a);
-              const kb = addressOrderKey(b);
-              if (ka.street !== kb.street) return ka.street.localeCompare(kb.street);
-              if (ka.num !== kb.num) return ka.num - kb.num;
-              return ka.station - kb.station;
-            });
+          let origin = null;
+          // Origin priority: geocoded point first, otherwise a feu on the street, otherwise any feu with coords
+          const firstPrimary = filtered.find(
+            (p) => p.normStreet === normalizedInput && p.lat != null && p.lon != null
+          );
+          if (location && location.x != null && location.y != null) {
+            origin = { lon: location.x, lat: location.y };
+          } else if (firstPrimary) {
+            origin = { lon: firstPrimary.lon, lat: firstPrimary.lat };
+          } else {
+            const any = filtered.find((p) => p.lat != null && p.lon != null);
+            if (any) origin = { lon: any.lon, lat: any.lat };
+          }
 
-          sortByAddress(primary);
-          sortByAddress(others);
+          const withDist = filtered.map((p) => {
+            let dist = null;
+            if (origin && p.lat != null && p.lon != null) {
+              dist = haversine(origin.lat, origin.lon, p.lat, p.lon);
+            }
+            const live = statusMap[p.station] || {};
+            const statut = live.statut || p.statut || "Inconnu";
+            const updated = live.dateMaj ?? "N/D"; // date privilégiée du service; pas de repli CSV
+            return { ...p, dist, statut, dateMaj: updated, dotClass: statusClass(statut) };
+          });
+
+          const primary = withDist.filter((p) => p.normStreet === normalizedInput);
+          const others = withDist.filter((p) => p.normStreet !== normalizedInput);
+
+          primary.sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
+          others.sort((a, b) => (a.dist ?? Infinity) - (b.dist ?? Infinity));
 
           const toItems = (list, group) =>
-            list.map((p) => {
-              const statut = (p.statut || "Inconnu").toLowerCase();
-              const updated = p.dateMaj ? p.dateMaj : "N/D";
-              const distance =
-                location && p.lon && p.lat
-                  ? formatMeters(haversine(location.y, location.x, p.lat, p.lon))
-                  : "N/D";
-              return {
-                statut,
-                updated,
-                stationNo: p.station,
-                distance,
-                locationLabel: p.street || "emplacement inconnu",
-                group,
-              };
-            });
+            list.map((p) => ({
+              statut: (p.statut || "Inconnu").toLowerCase(),
+              updated: p.dateMaj,
+              stationNo: p.station,
+              distance:
+                p.dist != null && Number.isFinite(p.dist) ? formatMeters(p.dist) : "N/D",
+              locationLabel: p.street || "emplacement inconnu",
+              dotClass: p.dotClass,
+              group,
+            }));
 
-          const items = [...toItems(others, "nearby"), ...toItems(primary, "primary")];
+          const items = includeNearby
+            ? [...toItems(others, "nearby"), ...toItems(primary, "primary")]
+            : toItems(primary, "primary");
 
+          currentItems = items;
           renderStatus(`Adresse : ${address}.`, items);
         } catch (error) {
           renderStatus(
@@ -600,6 +830,19 @@
       statusButton.addEventListener("click", fetchStatuses);
       addressInput.addEventListener("keydown", (e) => {
         if (e.key === "Enter") {
+          fetchStatuses();
+        }
+      });
+      resultsDiv.addEventListener("click", (e) => {
+        const btn = e.target.closest(".add-btn");
+        if (!btn) return;
+        const station = btn.getAttribute("data-station");
+        if (!station) return;
+        if (cart.has(station)) return;
+        const item = currentItems.find((it) => String(it.stationNo) === station);
+        if (item) {
+          cart.set(station, item);
+          renderCart();
           fetchStatuses();
         }
       });
@@ -668,6 +911,59 @@
 
       // Hint text on load
       renderStatus("Entre une adresse pour commencer.");
+
+      // Cart rendering
+      function renderCart() {
+        const list = document.getElementById("cartList");
+        const count = document.getElementById("cartCount");
+        const subscribeSection = document.getElementById("subscribeSection");
+        const subscribeMessage = document.getElementById("subscribeMessage");
+        const items = Array.from(cart.values());
+        count.textContent = `(${items.length})`;
+        if (!items.length) {
+          list.innerHTML = '<div class="cart-empty">Faites une sélection pour poursuivre</div>';
+          if (subscribeSection) subscribeSection.style.display = "none";
+          if (subscribeMessage) subscribeMessage.style.display = "none";
+          return;
+        }
+        if (subscribeSection) subscribeSection.style.display = "flex";
+        if (subscribeMessage) subscribeMessage.style.display = "none";
+        list.innerHTML = items
+          .map(
+            (item) => `
+          <div class="cart-item" data-station="${item.stationNo}">
+            <div>
+              <div class="cart-item-title">Poste ${item.stationNo}</div>
+              <div class="cart-item-meta">${item.locationLabel || "Emplacement inconnu"}</div>
+            </div>
+            <button class="cart-remove" data-station="${item.stationNo}">x</button>
+          </div>
+        `
+          )
+          .join("");
+      }
+      document.getElementById("cartList").addEventListener("click", (e) => {
+        const btn = e.target.closest(".cart-remove");
+        if (!btn) return;
+        const station = btn.getAttribute("data-station");
+        cart.delete(station);
+        renderCart();
+        fetchStatuses();
+      });
+
+      // Subscription placeholder
+      document.getElementById("subscribeButton").addEventListener("click", () => {
+        const phone = document.getElementById("phoneInput").value.trim();
+        const msg = document.getElementById("subscribeMessage");
+        if (!phone) {
+          alert("Entre un numéro de téléphone pour t'abonner.");
+          return;
+        }
+        if (msg) {
+          const stations = Array.from(cart.keys()).join(", ") || "aucun poste";
+          msg.textContent = `Votre abonnement aux postes suivants a été complété avec succès : ${stations}`;
+          msg.style.display = "block";
+        }
+      });
     </script>
   </body>
-</html>

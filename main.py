@@ -65,7 +65,6 @@ def reverse_geocode(lon: float, lat: float, cache: Dict[str, str]) -> str:
     params = {
         "f": "json",
         "location": f"{lon},{lat}",
-        "featureTypes": "StreetAddress",
         "langCode": "fr",
         "outSR": 4326,
     }
